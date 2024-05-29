@@ -122,18 +122,18 @@ try {
 
 ### 전체를 함수로 빼내기
 
-코드 전체를 함수 하나로 뺐냈다.
-
 ```javascript
-function withLogging() {
+function withLogging(f) {
     try {
-        saveUserData(user);
+        f();
     } catch (error) {
         logToSnapErrors(error);
     }
 }
 
-withLogging();
+withLogging(function () {
+    saveUserData();
+});
 ```
 
-###
+코드 전체를 함수 하나로 빼내고 함수 본문을 인자로 받아서 호출하게 바꿨다.
