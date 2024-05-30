@@ -63,23 +63,26 @@ function withArrayCopy(array, modify) {
 챕터 10에서 `withLogging` 함수를 만들었다. 이 함수는 에러 로그를 남기기 위한 함수로 중복된 `try/catch`문을 없앨 수 있었다. 하지만 여전히 모든 코드를 `withLogging` 함수로 감싸야 한다는 문제가 있다.
 
 ```javascript
-withLogging(function() { // 중복
+withLogging(function () {
+    // 중복
     saveUserData(user);
 }); // 중복
 
-withLogging(function() { // 중복
+withLogging(function () {
+    // 중복
     fetchProduct(productID);
 }); // 중복
 ```
 
 에러 로그가 필요한 모든 부분을 위와 같은 식으로 감쌌을 경우 결국 인자로 전달되는 함수가 호출하는 함수를 제외하고는 중복이 생길 수밖에 없다. 결국 이 방법에는 두 가지 문제가 있다.
 
-* 어떤 부분에 로그를 남기는 것을 까먹을 수 있다.
-* 모든 코드를 `withLogging`함수로 감싸야한다.(중복이 생긴다.)
+-   어떤 부분에 로그를 남기는 것을 까먹을 수 있다.
+-   모든 코드를 `withLogging`함수로 감싸야한다.(중복이 생긴다.)
 
 이 문제를 해결하기 위해 코드를 다시 정리해보자.
 
 **원래 코드**
+
 ```javascript
 try {
     saveUserData(user);
@@ -97,6 +100,7 @@ try {
 원래 코드에서 `try` 블럭에 있는 함수는 로그를 남기지 않는 함수 이므로 이름에 명확하게 남겨주자.
 
 **이름을 명확하게 바꿈**
+
 ```javascript
 try {
     saveUserDataNoLogging(user);
@@ -114,6 +118,7 @@ try {
 그리고 각 `try/catch`문을 함수로 감싸고 이 함수는 로그를 남길 수 있으니 이름을 붙여준다.
 
 **로그를 남기는 함수**
+
 ```javascript
 function saveUserDataWithLogging(user) {
     try {
@@ -128,22 +133,23 @@ function fetchProductWithLogging(productId) {
         fetchProductNoLogging(productId);
     } catch (error) {
         logToSnapErrors(error);
-    }    
+    }
 }
 ```
 
 이렇게 해서 기존에 로그를 남기지 않던 함수는 수정하지 않고 로그를 로그를 남길 수 있는 함수를 새로 만들었다. 하지만 여전히 중복이 존재한다. 여기서 함수 본문을 콜백으로 바꾸기 리팩터링을 적용해보자.
 
 **함수 본문을 콜백으로 바꾸기**
+
 ```javascript
 function wrapLogging(f) {
-    return function(arg) {
+    return function (arg) {
         try {
-            f(arg)
-        } catch(error) {
+            f(arg);
+        } catch (error) {
             logToSnapErrors(error);
         }
-    }
+    };
 }
 
 const saveUserDataWithLogging = wrapLogging(saveUserDataNoLogging);
