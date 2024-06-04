@@ -149,4 +149,88 @@ setDocLoadingDOM(true);
 
 앞에서 본 타임라인 그리기 2단계다. 여기서 타임라인을 단순화할 건데 만약 타임라인 끝에 다른 타임라인이 온다면, 즉 타임라인간에 순서가 섞일 일이 없다면 하나로 묶을 수 있다.
 
-![alt text](4F798598-0643-4920-B2FD-8A1CFDF79C0C_1_201_a.jpeg)
+![타임라인 다이어그램](4F798598-0643-4920-B2FD-8A1CFDF79C0C_1_201_a.jpeg)
+
+## 두 번 클릭했을 때 생기는 문제
+
+**두 번 천천히 클릭했을 때**
+
+![두 번 천천히 클릭했을 때](B3CE3B5F-EA92-4F20-AA71-888D18F7535B_1_201_a.jpeg)
+
+천천히 클릭했을 경우에는 첫 번째 클릭의 마지막 단계가 끝나고 나서 두 번째 클릭이 시작된다. 따라서 의도된 대로 작동한다.
+
+**두 번 빠르게 클릭했을 때**
+
+![두 번 빠르게 클릭했을 때](F59AB961-6B7F-4419-A2A8-AF2FA22B62DC_1_201_a.jpeg)
+
+여기서 문제가 생긴다. 어느 시점에 클릭 핸들러가 실행되는지에 따라서 액션에 순서가 달라진다. 각 단계가 섞이는 것이다. 이 경우 클릭 시점에 따라서 실행 가능한 순서가 10개나 된다. 코드가 잘 동작한다는 걸 어떻게 보장할 수 있을까?
+
+## 자원을 공유하는 타임라인은 문제가 된다.
+
+```javascript
+function add_item_cart(name, price, quantity) {
+    // 전역 변수 cart를 참조
+    cart = add_item(cart, name, price, quantity);
+    calc_cart_total();
+}
+
+function calc_cart_total() {
+    // 전역 변수 total을 참조
+    total = 0;
+    cost_ajax(cart, function () {
+        total += cost;
+        shipping_ajax(cart, function (shipping) {
+            total += shipping;
+            update_total_dom(total);
+        });
+    });
+}
+```
+
+클릭을 여러 번 했을 경우 클릭 횟수와 동일한 타임라인이 생기게 되는데 이때 모든 타임라인은 전역변수 `total, cart` 그리고 `DOM`을 공유한다. 특히 지금 해결하고 있는 버그는 `total` 전역 변수를 공유해서 그런 것이다.
+
+### 전역변수를 지역변수로 바꾸기
+
+```javascript
+function calc_cart_total() {
+    // 전역변수 total을 지역변수로 바꿨다.
+    let total = 0;
+    cost_ajax(cart, function () {
+        total += cost;
+        shipping_ajax(cart, function (shipping) {
+            total += shipping;
+            update_total_dom(total);
+        });
+    });
+}
+```
+
+`calc_cart_total`함수에서 참조하는 전역변수 `total`을 지역변수로 바꿨다. 따라서 total을 참조하는 부분이 모두 계산으로 바뀌었으므로 타임라인도 더 단순해질 수 있다. 이어서 전역변수 `cart`를 없애보자
+
+### 전역변수를 인자로 바꾸기
+
+```javascript
+function add_item_cart(name, price, quantity) {
+    cart = add_item(cart, name, price, quantity);
+    // cart를 인자로 전달
+    calc_cart_total(cart);
+}
+
+// 전달받은 인자 cart 사용
+function calc_cart_total(cart) {
+    let total = 0;
+    cost_ajax(cart, function () {
+        total += cost;
+        shipping_ajax(cart, function (shipping) {
+            total += shipping;
+            update_total_dom(total);
+        });
+    });
+}
+```
+
+전역변수 `cart`를 인자로 받게 코드를 바꿔서 타임라인끼리 공유하는 자원을 줄였다.
+
+![타임라인 다이어그램](F5FC936C-7652-4D95-AFD3-5505C2B7FF67_4_5005_c.jpeg)
+
+이렇게 공유하는 자원을 줄이고 액션을 줄여 타임라인을 단순화시킬 수 있다.
